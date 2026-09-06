@@ -11,6 +11,7 @@ from guardrails.doctor import emit_doctor
 from guardrails.errors import EXIT_ERROR, GuardError
 from guardrails.github_protect import emit_apply, emit_plan, emit_verify
 from guardrails.publication import resolve_repo, scan_history, scan_pre_push, scan_staged
+from guardrails.security import emit_security_scan
 from guardrails.setup import apply_preview, create_preview
 
 
@@ -123,7 +124,7 @@ def main(argv: list[str] | None = None) -> int:
             if args.history is not None:
                 return scan_history(repo, args.history, output_format=output_format)
             if args.security:
-                raise GuardError("Security scanning is not implemented yet")
+                return emit_security_scan(repo, output_format=output_format)
         if args.command == "hook" and args.hook_command == "pre-push":
             return scan_pre_push(repo, output_format=output_format)
         if args.command == "setup" and args.setup_command == "apply":
