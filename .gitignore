@@ -20,3 +20,4 @@ htmlcov/
 result
 result-*
 .worktrees/
+.agent/
