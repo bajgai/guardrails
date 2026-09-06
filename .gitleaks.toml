@@ -1,5 +1,9 @@
 title = "guardrails gitleaks"
 
-[allowlist]
-description = "No allowlisted secrets"
-paths = []
+# Pattern-source files define detector regexes; they are not credential stores.
+[[allowlists]]
+description = "Detector definitions and synthetic credential constructors"
+paths = [
+  '''(^|/)src/guardrails/content\.py$''',
+  '''(^|/)tests/test_.*\.py$''',
+]
