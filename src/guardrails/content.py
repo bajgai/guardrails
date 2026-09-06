@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from pathlib import PurePosixPath
 import re
+from pathlib import PurePosixPath
 
 MAX_BYTES = 256 * 1024
 
@@ -109,7 +109,7 @@ SECRET_PATTERNS = [
         "jwt",
         re.compile(r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b"),
     ),
-    ("service-account", re.compile(r'''["']type["']\s*:\s*["']service_account["']''')),
+    ("service-account", re.compile(r"""["']type["']\s*:\s*["']service_account["']""")),
     ("credential-url", re.compile(r"\b[a-z][a-z0-9+.-]*://[^\s/@:]+:[^\s/@]+@", re.I)),
 ]
 KEY_NAME = (
@@ -117,7 +117,7 @@ KEY_NAME = (
     r"connection[_-]?string)(?:[_-][A-Za-z0-9]+)*"
 )
 QUOTED_CREDENTIAL = re.compile(
-    r'''(?<![\w-])["']?(?:''' + KEY_NAME + r''')["']?\s*[:=]\s*(["'])([^\r\n]*?)\1''',
+    r"""(?<![\w-])["']?(?:""" + KEY_NAME + r""")["']?\s*[:=]\s*(["'])([^\r\n]*?)\1""",
     re.I,
 )
 BARE_CREDENTIAL = re.compile(
@@ -137,6 +137,21 @@ def placeholder(value: str) -> bool:
                 value,
             )
         )
+        or value
+        in {
+            "True",
+            "False",
+            "None",
+            "bool",
+            "int",
+            "str",
+            "float",
+            "bytes",
+            "list",
+            "dict",
+            "tuple",
+            "set",
+        }
     )
 
 

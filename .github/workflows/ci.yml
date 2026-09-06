@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "17 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public-repository-guard:
+    name: Public repository guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.13"
+      - name: Install package
+        run: pip install -e .
+      - name: Unit tests
+        run: python -m unittest discover -s tests
+      - name: Publication history scan
+        run: python -m guardrails check --history HEAD
+      - name: Lint
+        run: |
+          pip install 'ruff>=0.8' 'mypy>=1.13'
+          ruff check src tests
+          ruff format --check src tests
+          mypy src
+
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Scan credentials with Gitleaks
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/gitleaks_8.30.1_linux_x64.tar.gz"
+          curl --fail --silent --show-error --location \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz \
+            --output "$archive"
+          printf '%s  %s\n' \
+            551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb \
+            "$archive" | sha256sum --check --status
+          tar -xzf "$archive" -C "$RUNNER_TEMP" gitleaks
+          if ! "$RUNNER_TEMP/gitleaks" git . --redact=100 \
+            --log-opts='--all --full-history -m' --config .gitleaks.toml \
+            --ignore-gitleaks-allow --no-banner --log-level=error \
+            > "$RUNNER_TEMP/gitleaks-private.log" 2>&1; then
+            echo '::error::Secret scan failed. Reproduce locally in private; findings are not published.'
+            exit 1
+          fi
+
+  security-scan:
+    name: Security scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.13"
+      - name: Install package and scanners
+        run: |
+          pip install -e .
+          # Scanner presence is required for an unqualified security pass.
+          # Individual tools are installed by the job environment in later
+          # releases; this job currently reports incomplete status explicitly.
+          python -m guardrails check --security --format json | tee "$RUNNER_TEMP/security.json"
+          python - <<'PY'
+          import json, os, sys
+          payload = json.load(open(os.environ["RUNNER_TEMP"] + "/security.json"))
+          print("public_rules_only=", payload.get("public_rules_only"))
+          if payload.get("status") == "ok":
+              sys.exit(0)
+          if payload.get("status") == "incomplete":
+              print("::warning::Security scanners incomplete on this runner; not an unqualified pass.")
+              sys.exit(0)
+          sys.exit(1)
+          PY

@@ -21,3 +21,4 @@ result
 result-*
 .worktrees/
 .agent/
+.cursor/

@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import json
 import os
-from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import unittest
+from pathlib import Path
 
 PROJECT = Path(__file__).resolve().parents[1]
 POLICY = ".public-repo-policy.json"
@@ -63,7 +63,9 @@ class PublicationGuardTests(unittest.TestCase):
     def approve(self, *paths: str) -> None:
         self.write(POLICY, json.dumps({"version": 1, "public_paths": [POLICY, *paths]}) + "\n")
 
-    def run_cli(self, *args: str, input_text: str | None = None) -> subprocess.CompletedProcess[str]:
+    def run_cli(
+        self, *args: str, input_text: str | None = None
+    ) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             [sys.executable, "-m", "guardrails", *args],
             cwd=self.root,
@@ -73,7 +75,9 @@ class PublicationGuardTests(unittest.TestCase):
             capture_output=True,
         )
 
-    def assert_blocked(self, result: subprocess.CompletedProcess[str], category: str | None = None) -> None:
+    def assert_blocked(
+        self, result: subprocess.CompletedProcess[str], category: str | None = None
+    ) -> None:
         self.assertNotEqual(result.returncode, 0)
         self.assertNotIn(synthetic_credential(), result.stdout + result.stderr)
         if category:
@@ -134,7 +138,9 @@ class PublicationGuardTests(unittest.TestCase):
         self.assert_blocked(self.run_cli("check", "--history", "HEAD"), "path-not-approved")
         head = self.git("rev-parse", "HEAD")
         hook_input = f"refs/heads/main {head} refs/heads/main {'0' * 40}\n"
-        self.assert_blocked(self.run_cli("hook", "pre-push", input_text=hook_input), "path-not-approved")
+        self.assert_blocked(
+            self.run_cli("hook", "pre-push", input_text=hook_input), "path-not-approved"
+        )
 
     def test_history_uses_committed_policy_even_if_worktree_policy_is_missing(self) -> None:
         self.commit()
@@ -200,7 +206,9 @@ class PublicationGuardTests(unittest.TestCase):
         )
 
     def test_invalid_push_input_fails_closed(self) -> None:
-        self.assert_blocked(self.run_cli("hook", "pre-push", input_text="not hook input\n"), "Malformed")
+        self.assert_blocked(
+            self.run_cli("hook", "pre-push", input_text="not hook input\n"), "Malformed"
+        )
 
     def test_credentials_in_filenames_are_redacted(self) -> None:
         filename = synthetic_credential() + ".md"
@@ -216,7 +224,9 @@ class PublicationGuardTests(unittest.TestCase):
         self.git("update-ref", ref, head)
         self.assert_blocked(self.run_cli("check", "--history"), "reference name")
         hook_input = f"refs/heads/main {head} {ref} {'0' * 40}\n"
-        self.assert_blocked(self.run_cli("hook", "pre-push", input_text=hook_input), "reference name")
+        self.assert_blocked(
+            self.run_cli("hook", "pre-push", input_text=hook_input), "reference name"
+        )
 
     def test_deletion_push_is_permitted(self) -> None:
         hook_input = f"(delete) {'0' * 40} refs/heads/old {'a' * 40}\n"
@@ -294,14 +304,21 @@ class PublicationGuardTests(unittest.TestCase):
         self.assertIn("existing executable default Git hooks", result.stderr)
 
     def test_installed_hook_blocks_commit(self) -> None:
-        result = self.run_cli("setup", "apply", "--hooks-only")
+        env = dict(self.env, GUARDRAILS_DEV_SRC=PYTHONPATH)
+        result = subprocess.run(
+            [sys.executable, "-m", "guardrails", "setup", "apply", "--hooks-only"],
+            cwd=self.root,
+            env=env,
+            capture_output=True,
+            text=True,
+        )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.write("README.md", synthetic_credential() + "\n")
         self.git("add", "README.md")
         result = subprocess.run(
             ["git", "-c", "commit.gpgsign=false", "commit", "-qm", "Blocked"],
             cwd=self.root,
-            env=self.env,
+            env=env,
             capture_output=True,
             text=True,
         )

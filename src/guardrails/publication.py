@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import re
-from pathlib import Path, PurePosixPath
 import sys
+from pathlib import Path, PurePosixPath
 
 from guardrails.content import MAX_BYTES, content_categories, path_categories
 from guardrails.errors import GuardError

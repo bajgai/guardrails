@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import json
 import os
-from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import unittest
+from pathlib import Path
 from unittest import mock
 
 PROJECT = Path(__file__).resolve().parents[1]
@@ -74,8 +74,8 @@ class SecurityScannerTests(unittest.TestCase):
         )
 
     def test_missing_scanner_cannot_unqualified_pass(self) -> None:
-        from guardrails.security import SecurityScanRequest, run_security_scan
         from guardrails.scanners import ScannerStatus
+        from guardrails.security import SecurityScanRequest, run_security_scan
 
         with mock.patch(
             "guardrails.scanners.which",
@@ -169,7 +169,9 @@ class SecurityScannerTests(unittest.TestCase):
     def test_private_rule_identifiers_are_sanitized(self) -> None:
         from guardrails.private_rules import sanitize_rule_id
 
-        self.assertEqual(sanitize_rule_id("/Users/home/secret-rules/acme.yml#rule-9"), "private-rule")
+        self.assertEqual(
+            sanitize_rule_id("/Users/home/secret-rules/acme.yml#rule-9"), "private-rule"
+        )
         self.assertNotIn("acme", sanitize_rule_id("/tmp/company-private/rule.yaml"))
 
     def test_cli_security_reports_incomplete_when_scanners_missing(self) -> None:

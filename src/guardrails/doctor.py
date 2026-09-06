@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import json
 import shutil
-from pathlib import Path
 import sys
+from pathlib import Path
 
 from guardrails import __version__
 from guardrails.errors import EXIT_OK, GuardError

@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+import os
 import stat
 import sys
+from pathlib import Path
 
 from guardrails.errors import EXIT_ERROR, EXIT_OK, GuardError
 from guardrails.gitops import git
@@ -33,7 +34,7 @@ def _existing_hooks_path(repo: Path) -> str:
 
 def install_hooks(repo: Path, *, python_executable: str | None = None) -> int:
     """Install repository-local hooks without replacing custom hook paths."""
-    python = python_executable or sys.executable
+    python = python_executable or "python3"
     existing = _existing_hooks_path(repo)
     hooks_dir = repo / ".githooks"
     allowed = {"", ".githooks", str(hooks_dir)}
@@ -47,8 +48,12 @@ def install_hooks(repo: Path, *, python_executable: str | None = None) -> int:
         for hook in default_hooks.iterdir() if default_hooks.is_dir() else []:
             if hook.name.endswith(".sample"):
                 continue
-            if hook.is_file() and (hook.stat().st_mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)):
-                print("Refusing to disable existing executable default Git hooks.", file=sys.stderr)
+            mode = hook.stat().st_mode
+            if hook.is_file() and (mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)):
+                print(
+                    "Refusing to disable existing executable default Git hooks.",
+                    file=sys.stderr,
+                )
                 return EXIT_ERROR
 
     hooks_dir.mkdir(parents=True, exist_ok=True)
@@ -61,13 +66,13 @@ def install_hooks(repo: Path, *, python_executable: str | None = None) -> int:
         path.write_text(body)
         path.chmod(path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
-    # Ensure the installed hooks can import this package even before packaging.
-    src = Path(__file__).resolve().parents[2]
-    if (src / "guardrails").is_dir():
+    # Tests/dev can point hooks at an unpacked src tree without packaging.
+    dev_src = os.environ.get("GUARDRAILS_DEV_SRC", "").strip()
+    if dev_src and Path(dev_src, "guardrails").is_dir():
         for name in mapping:
             path = hooks_dir / name
             text = path.read_text()
-            export = f'export PYTHONPATH="{src}${{PYTHONPATH:+:$PYTHONPATH}}"\n'
+            export = f'export PYTHONPATH="{dev_src}${{PYTHONPATH:+:$PYTHONPATH}}"\n'
             if "PYTHONPATH=" not in text:
                 path.write_text(text.replace("set -eu\n", "set -eu\n" + export, 1))
 

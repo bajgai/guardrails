@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 
-class FindingSeverity(str, Enum):
+class FindingSeverity(StrEnum):
     BLOCKER = "blocker"
     WARNING = "warning"
 

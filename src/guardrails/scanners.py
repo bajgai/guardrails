@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from enum import Enum
 import json
-from pathlib import Path
 import shutil
+from dataclasses import dataclass
+from enum import StrEnum
+from pathlib import Path
 from typing import Any
 
 from guardrails.errors import GuardError
@@ -18,7 +18,7 @@ from guardrails.report import sanitize_path
 which = shutil.which
 
 
-class ScannerStatus(str, Enum):
+class ScannerStatus(StrEnum):
     OK = "ok"
     MISSING = "missing"
     ERROR = "error"

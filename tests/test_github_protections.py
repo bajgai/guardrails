@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import json
 import os
-from pathlib import Path
 import subprocess
 import unittest
+from pathlib import Path
 from unittest import mock
 
 PROJECT = Path(__file__).resolve().parents[1]
@@ -17,7 +17,9 @@ class GitHubProtectionTests(unittest.TestCase):
     def setUp(self) -> None:
         self.env = dict(os.environ, PYTHONPATH=PYTHONPATH)
 
-    def run_cli(self, *args: str, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+    def run_cli(
+        self, *args: str, env: dict[str, str] | None = None
+    ) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             [os.environ.get("PYTHON", "python3"), "-m", "guardrails", *args],
             cwd=PROJECT,

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
 
 from guardrails.content import DENIED_DIRS, DENIED_SUFFIXES, path_categories
 from guardrails.errors import EXIT_OK, GuardError

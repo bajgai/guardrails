@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import json
-from pathlib import Path
 import shutil
 import tempfile
+from dataclasses import dataclass
+from pathlib import Path
 
 from guardrails.errors import EXIT_BLOCKED, EXIT_ERROR, EXIT_OK
 from guardrails.gitops import git
@@ -68,7 +68,12 @@ def summarize_security(result: SecurityScanResult) -> SecurityScanResult:
             warnings.append(f"{finding.scanner}:{finding.category}")
     incomplete = any(
         outcome.status
-        in {ScannerStatus.MISSING, ScannerStatus.ERROR, ScannerStatus.TIMEOUT, ScannerStatus.UNSUPPORTED}
+        in {
+            ScannerStatus.MISSING,
+            ScannerStatus.ERROR,
+            ScannerStatus.TIMEOUT,
+            ScannerStatus.UNSUPPORTED,
+        }
         for outcome in result.scanners
     )
     if blockers:
@@ -122,9 +127,16 @@ def emit_security_scan(repo: Path, *, output_format: str = "text") -> int:
             if outcome.message:
                 print(f"  {outcome.message}")
         for finding in result.findings:
-            print(f"FINDING {finding.scanner} {finding.path}: {finding.category} ({finding.severity.value})")
+            print(
+                "FINDING "
+                f"{finding.scanner} {finding.path}: "
+                f"{finding.category} ({finding.severity.value})"
+            )
         for warning in result.warnings:
             print(f"WARNING {warning}")
         if result.status == "incomplete":
-            print("Security scan incomplete; unavailable or failed scanners prevent an unqualified pass.")
+            print(
+                "Security scan incomplete; unavailable or failed scanners "
+                "prevent an unqualified pass."
+            )
     return result.exit_code

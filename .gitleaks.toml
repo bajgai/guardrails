@@ -1,0 +1,5 @@
+title = "guardrails gitleaks"
+
+[allowlist]
+description = "No allowlisted secrets"
+paths = []
