@@ -111,11 +111,11 @@ class PublicationGuard:
                     trees.add(tree)
                     self.check_tree(tree)
 
-    def report(self) -> int:
-        return report_findings(self.findings)
+    def report(self, *, output_format: str = "text") -> int:
+        return report_findings(self.findings, output_format=output_format)
 
 
-def scan_staged(repo: Path) -> int:
+def scan_staged(repo: Path, *, output_format: str = "text") -> int:
     entries: list[tuple[str, str, str]] = []
     policy_oid: str | None = None
     for record in git(repo, "ls-files", "--stage", "-z").split(b"\0"):
@@ -135,13 +135,13 @@ def scan_staged(repo: Path) -> int:
     guard = PublicationGuard(repo, load_policy(git(repo, "cat-file", "blob", policy_oid)))
     for entry in entries:
         guard.check_entry(*entry)
-    return guard.report()
+    return guard.report(output_format=output_format)
 
 
-def scan_history(repo: Path, refs: list[str] | None) -> int:
+def scan_history(repo: Path, refs: list[str] | None, *, output_format: str = "text") -> int:
     guard = PublicationGuard(repo, set())
     guard.history(refs)
-    return guard.report()
+    return guard.report(output_format=output_format)
 
 
 def parse_pre_push_refs(stdin_text: str | None = None) -> list[str]:
@@ -167,13 +167,18 @@ def parse_pre_push_refs(stdin_text: str | None = None) -> list[str]:
     return refs
 
 
-def scan_pre_push(repo: Path, stdin_text: str | None = None) -> int:
+def scan_pre_push(
+    repo: Path,
+    stdin_text: str | None = None,
+    *,
+    output_format: str = "text",
+) -> int:
     refs = parse_pre_push_refs(stdin_text)
     guard = PublicationGuard(repo, set())
     if not refs:
-        return guard.report()  # Deletions or a no-op push contain no new objects.
+        return guard.report(output_format=output_format)  # Deletions or no-op push.
     guard.history(refs)
-    return guard.report()
+    return guard.report(output_format=output_format)
 
 
 def resolve_repo() -> Path:
