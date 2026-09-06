@@ -9,6 +9,7 @@ import sys
 from guardrails import __version__
 from guardrails.doctor import emit_doctor
 from guardrails.errors import EXIT_ERROR, GuardError
+from guardrails.github_protect import emit_apply, emit_plan, emit_verify
 from guardrails.publication import resolve_repo, scan_history, scan_pre_push, scan_staged
 from guardrails.setup import apply_preview, create_preview
 
@@ -59,11 +60,22 @@ def _build_parser() -> argparse.ArgumentParser:
         help="install local Git hooks without a setup preview",
     )
 
+    format_parent = argparse.ArgumentParser(add_help=False)
+    _add_format(format_parent)
+
     github = sub.add_parser("github", help="preview, apply, and verify GitHub protections")
     github_sub = github.add_subparsers(dest="github_command", required=True)
-    github_sub.add_parser("plan", help="preview exact GitHub protection changes")
+    github_sub.add_parser(
+        "plan",
+        parents=[format_parent],
+        help="preview exact GitHub protection changes",
+    )
     github_sub.add_parser("apply", help="apply reviewed GitHub protection changes")
-    github_sub.add_parser("verify", help="read back GitHub protection state")
+    github_sub.add_parser(
+        "verify",
+        parents=[format_parent],
+        help="read back GitHub protection state",
+    )
 
     doctor = sub.add_parser("doctor", help="report versions, coverage, hooks, and protection state")
     _add_format(doctor)
@@ -94,10 +106,15 @@ def main(argv: list[str] | None = None) -> int:
             print("No integration updates are available in this development build.")
             return 0
         if args.command == "github":
-            raise GuardError(
-                f"GitHub {args.github_command} is not implemented yet; "
-                "protections must be applied explicitly after implementation"
-            )
+            repo = resolve_repo()
+            output_format = getattr(args, "output_format", "text")
+            if args.github_command == "plan":
+                return emit_plan(repo, output_format=output_format)
+            if args.github_command == "verify":
+                return emit_verify(repo, output_format=output_format)
+            if args.github_command == "apply":
+                return emit_apply(repo)
+            raise GuardError(f"Unhandled github command: {args.github_command}")
         repo = resolve_repo()
         output_format = getattr(args, "output_format", "text")
         if args.command == "check":
